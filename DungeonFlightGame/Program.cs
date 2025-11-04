@@ -1,186 +1,75 @@
-﻿namespace DungeonFlightGame
+namespace DungeonFlightGame;
+
+internal static class Program
 {
-    internal class Program
+    private static void Main()
     {
-        static void Main(string[] args)
+        var game = new Game(
+            rows: 7,
+            columns: 4,
+            playerPosition: new Position(0, 0),
+            initialPlayerHealth: 10,
+            initialEnemyHealth: 2);
+
+        while (true)
         {
-            string playerInput = "";
-            int[,] worldMap = new int[7, 4];
-            int worldMapRows = worldMap.GetLength(1);
-            int worldMapCols = worldMap.GetLength(0);
-            int userXPosition = 0;
-            int userYPosition = 0;
-            int userHealth = 90;
-            int baseCell = 2;
-            bool gameRunning = true;
-            MapGenerator(baseCell, userHealth, worldMap, userXPosition, userYPosition);
-            while (gameRunning)
+            PrintMap(game.Map);
+            Console.WriteLine($"Health: {game.PlayerHealth}");
+            Console.WriteLine($"Position: {game.PlayerPosition}");
+            Console.WriteLine();
+
+            if (game.GameOver)
             {
-                Console.WriteLine("Old Map:");
-                ViewMap(worldMap);
-                Console.WriteLine("");
-                playerInput = takePlayerInput();
-
-                if (userHealth <= 0)
-                {
-                    userHealth = 0;
-                    gameRunning = false;
-                    Console.WriteLine("You Died!");
-                }
-
-                else if (userHealth > 0)
-                {
-                    updateMap(baseCell, ref userHealth, ref worldMap, 
-                              ref userYPosition, ref userXPosition, ref worldMapRows, ref worldMapCols, playerInput);
-                }
-
-                else
-                {
-                    Console.WriteLine($"Something went wrong!: inputValid");
-                    continue;
-                }
-
+                Console.WriteLine("You died!");
+                return;
             }
-        }
 
-        //TODO: Refactor the player input choices to enums
-        static string takePlayerInput()
+            var direction = PlayerInput();
+
+            if (game.MovePlayer(direction))
+                continue;
+
+            Console.WriteLine("Can't move in that direction!");
+            Console.WriteLine();
+        }
+    }
+
+    private static void PrintMap(int[,] map)
+    {
+        for (var row = 0; row < map.GetLength(0); row++)
         {
-            while (true)
+            for (var column = 0; column < map.GetLength(1); column++)
             {
-                Console.WriteLine("");
-                Console.WriteLine("W: for Up, S: for Down, D: for Right, A: for Left");
-                string? temporaryPlayerInput = Console.ReadLine()?.ToLower();
-                if (string.IsNullOrEmpty(temporaryPlayerInput)) {
-                    continue;
-                }
-
-                if (!(temporaryPlayerInput == "w" || temporaryPlayerInput == "s" || temporaryPlayerInput == "a" || temporaryPlayerInput == "d"))
-                {
-                    
-                    continue;
-                }
-                return temporaryPlayerInput;
+                Console.Write($"{map[row, column]} ");
             }
-            
-        }
 
-        //TODO: Remove redundant code in the nested conditionals
-        static void updateMap(int baseCell, ref int userHealth, ref int[,] worldMap,
-                              ref int userYPosition, ref int userXPosition, 
-                              ref int worldMapRows, ref int worldMapCols, 
-                              string playerInput)
+            Console.WriteLine();
+        }
+    }
+
+    private static Direction PlayerInput()
+    {
+        while (true)
         {
-            Console.Clear();
-            int checkNewXPos = userXPosition;
-            int checkNewYPos = userYPosition;
+            var direction = ParseInput(Console.ReadLine());
 
-            Console.WriteLine("");
-            if (playerInput == "s")
-            {
-                checkNewYPos += 1;
-                if (validateNewPosition(worldMap, baseCell, userHealth, checkNewYPos, checkNewXPos, worldMapRows, worldMapCols))
-                {
-                    userYPosition = checkNewYPos;
-                    userHealth -= worldMap[checkNewYPos, checkNewXPos];
-                    worldMap[userYPosition, userXPosition] = userHealth;
-                    worldMap[userYPosition - 1, userXPosition] = 0;
-                }
-                else
-                {
-                    Console.WriteLine("Try Again!");
-                }
-            }
+            if (direction is not null)
+                return direction.Value;
 
-            else if (playerInput == "w")
-            {
-                checkNewYPos -= 1;
-                if (validateNewPosition(worldMap, baseCell, userHealth, checkNewYPos, checkNewXPos, worldMapRows, worldMapCols))
-                {
-
-                    userYPosition = checkNewYPos;
-                    userHealth -= worldMap[checkNewYPos, checkNewXPos];
-                    worldMap[userYPosition, userXPosition] = userHealth;
-                    worldMap[userYPosition + 1, userXPosition] = 0;
-                }
-                else
-                {
-                    Console.WriteLine("Try Again!");
-                }
-            }
-
-            else if (playerInput == "d")
-            {
-                checkNewXPos += 1;
-                if (validateNewPosition(worldMap, baseCell, userHealth, checkNewYPos, checkNewXPos, worldMapRows, worldMapCols))
-                {
-
-                    userXPosition = checkNewXPos;
-                    userHealth -= worldMap[checkNewYPos, checkNewXPos];
-                    worldMap[userYPosition, userXPosition] = userHealth;
-                    worldMap[userYPosition, userXPosition - 1] = 0;
-                }
-                else
-                {
-                    Console.WriteLine("Try Again!");
-                }
-            }
-
-            else if (playerInput == "a")
-            {
-                checkNewXPos -= 1;
-                if (validateNewPosition(worldMap, baseCell, userHealth, checkNewYPos, checkNewXPos, worldMapRows, worldMapCols))
-                {
-
-                    userXPosition = checkNewXPos;
-                    userHealth -= worldMap[checkNewYPos, checkNewXPos];
-                    worldMap[userYPosition, userXPosition] = userHealth;
-                    worldMap[userYPosition, userXPosition + 1] = 0;
-                }
-                else
-                {
-                    Console.WriteLine("Try Again!");
-                }
-            }
-            Console.WriteLine("");
-           
-
+            Console.WriteLine("Invalid input!");
+            Console.WriteLine();
         }
+    }
 
-        static bool validateNewPosition(int[,] worldMap, int newCell, int checkNewHealth, int checkNewYPos, int checkNewXPos, int worldMapRows, int worldMapCols)
+    private static Direction? ParseInput(string? input)
+    {
+        return input?.ToLower() switch
         {
-            return checkNewXPos >= 0 && checkNewYPos >= 0 && checkNewYPos < worldMapCols && checkNewXPos < worldMapRows;
-        }
-
-        static void MapGenerator(int baseCell, int userHealth, int[,] worldMap, int userX, int userY)
-        {
-            for (int i = 0; i < worldMap.GetLength(0); i++)
-            {
-                for (int j = 0; j < worldMap.GetLength(1); j++)
-                {
-                    if (i == userX && j == userY)
-                    {
-                        worldMap[i, j] = userHealth;
-                    }
-                    else
-                    {
-                        worldMap[i, j] = baseCell;
-                    }
-
-                }
-            }
-        }
-
-        static void ViewMap(int[,] worldMapDimensions)
-        {
-            for (int i = 0; i < worldMapDimensions.GetLength(0); i++)
-            {
-                for (int j = 0; j < worldMapDimensions.GetLength(1); j++)
-                {
-                    Console.Write($"{worldMapDimensions[i, j]} ");
-                }
-                Console.WriteLine("");
-            }
-        }
+            "w" => Direction.North,
+            "d" => Direction.East,
+            "s" => Direction.South,
+            "a" => Direction.West,
+            _ => null,
+        };
     }
 }
